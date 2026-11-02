@@ -1,0 +1,739 @@
+/* ---------------------------------------------------------------------------
+   Tokens: un juego de mesa de juguete sobre una laguna.
+   --------------------------------------------------------------------------- */
+:root {
+  --laguna: #cfe6ea;
+  --laguna-honda: #a9d2d9;
+  --tinta: #1e2d3b;
+  --tinta-suave: #4b5f70;
+  --papel: #fbfdfb;
+  --casilla-clara: #f3f8ef;
+  --casilla-oscura: #dcebdc;
+  --verde: #2f9b4e;
+  --verde-pintura: #7fcb8f;
+  --rojo: #d6453b;
+  --rojo-pintura: #f19a92;
+  --huevo: #f3c443;
+
+  --fuente-titulo: 'Fredoka', 'Trebuchet MS', sans-serif;
+  --fuente-texto: 'Atkinson Hyperlegible', 'Segoe UI', sans-serif;
+
+  --borde: 3px solid var(--tinta);
+  --sombra-juguete: 0 6px 0 var(--tinta);
+  --radio-grande: 22px;
+  --radio: 12px;
+
+  color-scheme: light;
+  font-family: var(--fuente-texto);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--tinta);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--laguna);
+  /* ondas suaves de agua */
+  background-image: radial-gradient(circle at 20% 0%, #e2f1f3 0, transparent 45%),
+    repeating-radial-gradient(circle at 110% 120%, transparent 0 34px, rgba(255, 255, 255, 0.18) 34px 36px);
+}
+
+h1,
+h2 {
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.1;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+   Estructura
+   --------------------------------------------------------------------------- */
+.pagina {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 24px 48px;
+}
+
+.cabecera {
+  margin-bottom: 22px;
+}
+
+.cabecera h1 {
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--verde);
+  -webkit-text-stroke: 2px var(--tinta);
+  paint-order: stroke fill;
+  text-shadow: 0 4px 0 var(--tinta);
+}
+
+.estado {
+  margin: 10px 0 0;
+  font-size: 1.15rem;
+  min-height: 1.5em;
+  max-width: 60ch;
+}
+
+.juego {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 36px;
+  align-items: start;
+}
+
+/* ---------------------------------------------------------------------------
+   Tablero
+   --------------------------------------------------------------------------- */
+.zona-tablero {
+  position: relative;
+  width: min(100%, 78vh, 640px);
+}
+
+.tablero-marco {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  grid-template-rows: 22px 1fr;
+  gap: 6px;
+}
+
+.coordenadas {
+  display: grid;
+  font-family: var(--fuente-titulo);
+  font-weight: 500;
+  color: var(--tinta-suave);
+  font-size: 0.9rem;
+  place-items: center;
+}
+
+.coordenadas--columnas {
+  grid-column: 2;
+  grid-template-columns: repeat(8, 1fr);
+  padding: 0 7px;
+}
+
+.coordenadas--filas {
+  grid-column: 1;
+  grid-row: 2;
+  grid-template-rows: repeat(8, 1fr);
+  padding: 7px 0;
+}
+
+.tablero {
+  grid-column: 2;
+  grid-row: 2;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  aspect-ratio: 1;
+  padding: 4px;
+  background: var(--tinta);
+  border: var(--borde);
+  border-radius: var(--radio-grande);
+  box-shadow: 0 10px 0 #142029;
+}
+
+.casilla {
+  position: relative;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--casilla-clara);
+  cursor: default;
+  display: grid;
+  place-items: center;
+}
+
+.casilla--oscura {
+  background: var(--casilla-oscura);
+}
+
+/* esquinas redondeadas solo en las 4 esquinas del tablero */
+.casilla:nth-child(1) { border-top-left-radius: 16px; }
+.casilla:nth-child(8) { border-top-right-radius: 16px; }
+.casilla:nth-child(57) { border-bottom-left-radius: 16px; }
+.casilla:nth-child(64) { border-bottom-right-radius: 16px; }
+
+.casilla--legal {
+  cursor: pointer;
+}
+
+.casilla--legal:hover {
+  background: #fff6d6;
+}
+
+.pintura {
+  position: absolute;
+  inset: 7%;
+  border: 2px solid rgba(30, 45, 59, 0.35);
+}
+
+.pintura--verde {
+  background: var(--verde-pintura);
+}
+
+.pintura--rojo {
+  background: var(--rojo-pintura);
+}
+
+/* huevo moteado que marca dónde puedes saltar */
+.huevo {
+  position: relative;
+  width: 34%;
+  height: 42%;
+  border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%;
+  background: radial-gradient(circle at 34% 40%, var(--rojo) 0 11%, transparent 12%),
+    radial-gradient(circle at 66% 66%, var(--rojo) 0 13%, transparent 14%), #fffaf0;
+  border: 2.5px solid var(--tinta);
+  animation: huevo-respira 1.6s ease-in-out infinite;
+}
+
+.casilla--legal:hover .huevo {
+  animation: huevo-tiembla 0.4s ease-in-out infinite;
+}
+
+@keyframes huevo-respira {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8%); }
+}
+
+@keyframes huevo-tiembla {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+}
+
+.valor-candidato {
+  position: absolute;
+  left: 4%;
+  top: 4%;
+  z-index: 3;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--papel);
+  border: 2px solid var(--tinta);
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  font-size: clamp(0.6rem, 1.4vw, 0.78rem);
+  line-height: 1.3;
+  pointer-events: none;
+}
+
+.valor-candidato--elegido {
+  background: var(--huevo);
+}
+
+.capa-fichas {
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ficha {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12.5%;
+  height: 12.5%;
+}
+
+.ficha-salto {
+  width: 100%;
+  height: 100%;
+  padding: 6%;
+  transform-origin: 50% 90%;
+}
+
+.yoshi-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* avisos sobre el tablero: inicio y final */
+.aviso {
+  position: absolute;
+  inset: 28px 0 0 28px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+  padding: 32px;
+  border-radius: var(--radio-grande);
+  background: rgba(251, 253, 251, 0.9);
+  backdrop-filter: blur(2px);
+  z-index: 5;
+}
+
+.aviso p {
+  margin: 0;
+  max-width: 36ch;
+  font-size: 1.1rem;
+}
+
+.aviso .boton {
+  margin-top: 18px;
+}
+
+.aviso-titulo {
+  font-family: var(--fuente-titulo);
+  font-weight: 700;
+  font-size: clamp(2.2rem, 6vw, 3.4rem) !important;
+  line-height: 1.1;
+}
+
+.aviso--verde .aviso-titulo { color: var(--verde); }
+.aviso--rojo .aviso-titulo { color: var(--rojo); }
+
+/* ---------------------------------------------------------------------------
+   Botones e interruptores
+   --------------------------------------------------------------------------- */
+.boton {
+  border: var(--borde);
+  border-radius: var(--radio);
+  background: var(--papel);
+  padding: 10px 18px;
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
+  box-shadow: var(--sombra-juguete);
+  transform: translateY(0);
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+.boton:active {
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 var(--tinta);
+}
+
+.boton--principal {
+  background: var(--huevo);
+}
+
+.interruptor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.interruptor input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.interruptor-pista {
+  flex: none;
+  position: relative;
+  width: 46px;
+  height: 26px;
+  border: var(--borde);
+  border-radius: 99px;
+  background: var(--casilla-oscura);
+  transition: background 0.15s;
+}
+
+.interruptor-pista::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--tinta);
+  transition: transform 0.18s;
+}
+
+.interruptor input:checked + .interruptor-pista {
+  background: var(--verde-pintura);
+}
+
+.interruptor input:checked + .interruptor-pista::after {
+  transform: translateX(20px);
+}
+
+.interruptor input:focus-visible + .interruptor-pista {
+  outline: 3px solid var(--tinta);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+   Panel lateral
+   --------------------------------------------------------------------------- */
+.panel {
+  display: grid;
+  gap: 26px;
+}
+
+.panel h2 {
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+}
+
+.panel section + section {
+  padding-top: 22px;
+  border-top: 2px dashed var(--laguna-honda);
+}
+
+.texto-suave,
+.nota {
+  color: var(--tinta-suave);
+  margin: 0;
+}
+
+.nota {
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.razonamiento p {
+  margin: 0;
+}
+
+/* marcador */
+.marcador {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  border: var(--borde);
+  border-radius: var(--radio-grande);
+  background: var(--papel);
+  box-shadow: var(--sombra-juguete);
+  overflow: hidden;
+}
+
+.marcador-lado {
+  display: grid;
+  justify-items: center;
+  padding: 12px 8px 10px;
+  transition: background 0.2s;
+}
+
+.marcador-lado--verde.marcador-lado--turno { background: #dcf1e0; }
+.marcador-lado--rojo.marcador-lado--turno { background: #fbe1de; }
+
+.marcador-nombre {
+  font-weight: 700;
+}
+
+.marcador-numero {
+  font-family: var(--fuente-titulo);
+  font-weight: 700;
+  font-size: 3.2rem;
+  line-height: 1;
+}
+
+.marcador-lado--verde .marcador-numero { color: var(--verde); }
+.marcador-lado--rojo .marcador-numero { color: var(--rojo); }
+
+.marcador-libres {
+  display: grid;
+  place-content: center;
+  text-align: center;
+  padding: 0 10px;
+  font-size: 0.85rem;
+  color: var(--tinta-suave);
+  border-inline: 2px dashed var(--laguna-honda);
+}
+
+.marcador-libres span {
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  font-size: 1.3rem;
+  color: var(--tinta);
+}
+
+/* ajustes */
+.ajustes {
+  display: grid;
+  gap: 16px;
+}
+
+.niveles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.niveles legend {
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+  padding: 0;
+}
+
+.nivel {
+  display: grid;
+  justify-items: center;
+  padding: 8px 4px;
+  border: var(--borde);
+  border-radius: var(--radio);
+  background: var(--papel);
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 4px 0 var(--tinta);
+  transition: transform 0.08s, box-shadow 0.08s, background 0.15s;
+}
+
+.nivel input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.nivel:has(input:focus-visible) {
+  outline: 3px solid var(--tinta);
+  outline-offset: 3px;
+}
+
+.nivel--activo {
+  background: var(--verde-pintura);
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--tinta);
+}
+
+.nivel-nombre {
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.nivel-detalle {
+  font-size: 0.78rem;
+  color: var(--tinta-suave);
+}
+
+.nivel--activo .nivel-detalle {
+  color: var(--tinta);
+}
+
+/* razonamiento */
+.pensando {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pensando-punto {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--verde);
+  animation: latido 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes latido {
+  from { transform: scale(0.6); opacity: 0.5; }
+  to { transform: scale(1.1); opacity: 1; }
+}
+
+.candidatos {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 4px;
+}
+
+.candidatos li {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.candidatos .candidato--elegido {
+  background: var(--huevo);
+  font-weight: 700;
+}
+
+.candidato-valor {
+  font-variant-numeric: tabular-nums;
+}
+
+.estadisticas {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 16px;
+  margin: 16px 0 0;
+}
+
+.estadisticas div {
+  display: grid;
+}
+
+.estadisticas dt {
+  font-size: 0.85rem;
+  color: var(--tinta-suave);
+}
+
+.estadisticas dd {
+  margin: 0;
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* evaluación */
+.balanza {
+  position: relative;
+  height: 18px;
+  border: var(--borde);
+  border-radius: 99px;
+  background: var(--rojo-pintura);
+  overflow: hidden;
+}
+
+.balanza-verde {
+  height: 100%;
+  background: var(--verde-pintura);
+  border-right: 3px solid var(--tinta);
+}
+
+.balanza-centro {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 2px dashed rgba(30, 45, 59, 0.5);
+}
+
+.balanza-valor {
+  margin: 8px 0 12px;
+}
+
+.tabla-heuristica {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabla-heuristica th,
+.tabla-heuristica td {
+  padding: 5px 4px;
+  text-align: right;
+  border-bottom: 1px solid var(--laguna-honda);
+}
+
+.tabla-heuristica th[scope='row'],
+.tabla-heuristica thead th:first-child {
+  text-align: left;
+  font-weight: 400;
+}
+
+.tabla-heuristica thead th {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--tinta-suave);
+}
+
+/* historial */
+.bitacora summary {
+  cursor: pointer;
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.bitacora ol {
+  margin: 10px 0 0;
+  padding-left: 2.2em;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.bitacora-verde::marker { color: var(--verde); }
+.bitacora-rojo::marker { color: var(--rojo); }
+
+/* error */
+.error {
+  border: var(--borde);
+  border-radius: var(--radio);
+  background: #fbe1de;
+  padding: 12px 14px;
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.error p {
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Pantallas angostas
+   --------------------------------------------------------------------------- */
+@media (max-width: 920px) {
+  .juego {
+    grid-template-columns: 1fr;
+  }
+
+  .zona-tablero {
+    width: min(100%, 640px);
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .pagina {
+    padding: 18px 16px 40px;
+  }
+
+  .tablero-marco {
+    grid-template-columns: 16px 1fr;
+    grid-template-rows: 16px 1fr;
+    gap: 4px;
+  }
+
+  .aviso {
+    inset: 20px 0 0 20px;
+    padding: 18px;
+  }
+
+  .aviso p {
+    font-size: 1rem;
+  }
+
+  .valor-candidato {
+    font-size: 0.55rem;
+    padding: 0 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .huevo,
+  .pensando-punto {
+    animation: none;
+  }
+}
