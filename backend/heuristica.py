@@ -1,5 +1,5 @@
 """
-Función de evaluación heurística (versión doble: f1 + f2).
+Función de evaluación heurística.
 
 Todas las funciones se calculan desde el punto de vista del VERDE (la máquina):
 un valor positivo es bueno para la máquina y uno negativo es bueno para el humano.
@@ -14,24 +14,13 @@ Las dos componentes miran a lo sumo un salto adelante. Así la máquina solo "ve
 futuro" a través de la profundidad del árbol, y la dificultad crece con el nivel:
 en principiante (profundidad 2) puede escoger un salto bueno ahora que la deja
 acorralada más adelante.
-
-f3 (territorio) se conserva al final del archivo solo para los experimentos que
-justifican haberla descartado: su BFS recorre todos los caminos futuros y le daba
-a la máquina una visión a largo plazo que volvía casi imposible el nivel principiante.
 """
 
-from collections import deque
-
-from juego import (
-    TAMANO, TOTAL_CASILLAS, VACIO, VERDE, ROJO,
-    vecinos_caballo, movimientos, contar_casillas, es_terminal,
-)
+from juego import TOTAL_CASILLAS, VERDE, ROJO, movimientos, contar_casillas, es_terminal
 
 # Pesos w1, w2: no negativos, suman 1 y w1 > 0.
-# Conservan la proporción 0.4 : 0.3 de la versión triple (0.4/0.7 ≈ 0.571 y 0.3/0.7 ≈ 0.429).
+# Proporción 4 : 3 entre casillas pintadas y movilidad (0.4/0.7 ≈ 0.571 y 0.3/0.7 ≈ 0.429).
 PESOS = (0.4 / 0.7, 0.3 / 0.7)
-
-INFINITO = float("inf")
 
 
 # ---------------------------------------------------------------------------
@@ -101,62 +90,3 @@ def detalle(estado, pesos=PESOS):
         "pesos": list(pesos),
         "h": h(estado, pesos),
     }
-
-
-# ---------------------------------------------------------------------------
-# f3: diferencia de territorio (DESCARTADA, no se usa en h)
-# Se conserva para los experimentos de tests/test_heuristica_simple.py.
-# ---------------------------------------------------------------------------
-def distancias_bfs(estado, origen):
-    """
-    Búsqueda en anchura desde 'origen' que solo avanza por casillas libres.
-    Devuelve una matriz 8x8 con el mínimo número de saltos para llegar
-    a cada casilla (INFINITO si no se puede llegar).
-    """
-    distancia = [[INFINITO] * TAMANO for _ in range(TAMANO)]
-    distancia[origen[0]][origen[1]] = 0
-    cola = deque([origen])
-
-    while cola:
-        actual = cola.popleft()
-        for f, c in vecinos_caballo(actual):
-            libre = estado.tablero[f][c] == VACIO
-            no_visitada = distancia[f][c] == INFINITO
-            if libre and no_visitada:
-                distancia[f][c] = distancia[actual[0]][actual[1]] + 1
-                cola.append((f, c))
-
-    return distancia
-
-
-def territorio(estado):
-    """
-    Cada casilla libre es del Yoshi que llega a ella en MENOS saltos.
-    Si llegan en el mismo número de saltos (o ninguno llega) no cuenta para nadie.
-    Devuelve (T_V, T_R).
-    """
-    dist_verde = distancias_bfs(estado, estado.verde)
-    dist_rojo = distancias_bfs(estado, estado.rojo)
-
-    territorio_verde = 0
-    territorio_rojo = 0
-    for f in range(TAMANO):
-        for c in range(TAMANO):
-            if estado.tablero[f][c] != VACIO:
-                continue
-            if dist_verde[f][c] < dist_rojo[f][c]:
-                territorio_verde += 1
-            elif dist_rojo[f][c] < dist_verde[f][c]:
-                territorio_rojo += 1
-
-    return territorio_verde, territorio_rojo
-
-
-def f3(estado):
-    territorio_verde, territorio_rojo = territorio(estado)
-    return (territorio_verde - territorio_rojo) / TOTAL_CASILLAS
-
-
-def h_triple(estado):
-    """Heurística de la versión triple, h = 0.4*f1 + 0.3*f2 + 0.3*f3 (solo para comparar)."""
-    return 0.4 * f1(estado) + 0.3 * f2(estado) + 0.3 * f3(estado)

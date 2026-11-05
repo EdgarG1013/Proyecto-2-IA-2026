@@ -4,10 +4,9 @@ Proyecto 2 de Inteligencia Artificial (Universidad del Valle). Dos Yoshis saltan
 sobre un tablero de 8×8 y pintan cada casilla que tocan. La máquina (verde) decide con un árbol minimax con
 decisiones imperfectas, con o sin poda alfa-beta.
 
-**Rama `heuristica-doble`:** la función de evaluación es h = w1·f1 + w2·f2 (casillas pintadas y movilidad),
-con w = (0.4/0.7, 0.3/0.7) ≈ (0.571, 0.429). Las dos componentes miran a lo sumo un salto adelante, así que la
+La función de evaluación es h = w1·f1 + w2·f2 (casillas pintadas y movilidad), con
+w = (0.4/0.7, 0.3/0.7) ≈ (0.571, 0.429). Las dos componentes miran a lo sumo un salto adelante, así que la
 máquina solo ve el futuro a través de la profundidad del árbol y la dificultad crece con el nivel.
-La versión con territorio (f3) está en la rama `heuristica-triple`.
 
 | Nivel        | Profundidad |
 |--------------|-------------|
@@ -20,7 +19,7 @@ La versión con territorio (f3) está en la rama `heuristica-triple`.
 ```
 backend/              FastAPI + lógica del juego (Python)
   juego.py            reglas: tablero, saltos de caballo, pase, fin de partida
-  heuristica.py       f1, f2, h(s), U(s); f3 se conserva solo para los experimentos
+  heuristica.py       f1, f2, h(s), U(s)
   minimax.py          minimax, alfabeta, decidir       (informe, secciones 7 y 8)
   main.py             endpoints /api/...
   tests/              pruebas; test_ejemplo_informe.py reproduce el ejemplo de profundidad 2
