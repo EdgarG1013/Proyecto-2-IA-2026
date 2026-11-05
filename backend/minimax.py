@@ -57,7 +57,7 @@ def ordenar_hijos(hijos, jugador):
 # ---------------------------------------------------------------------------
 # Minimax sin poda
 # ---------------------------------------------------------------------------
-def minimax(estado, profundidad, estadisticas):
+def minimax(estado, profundidad, estadisticas, heuristica=h):
     estadisticas["nodos"] += 1
 
     if es_terminal(estado):
@@ -65,18 +65,18 @@ def minimax(estado, profundidad, estadisticas):
         return utilidad(estado)
     if profundidad == 0:
         estadisticas["hojas"] += 1
-        return h(estado)
+        return heuristica(estado)
 
     es_max = estado.turno == VERDE
 
     if es_max:
         valor = -INFINITO
         for _, hijo in generar_hijos(estado):
-            valor = max(valor, minimax(hijo, profundidad - 1, estadisticas))
+            valor = max(valor, minimax(hijo, profundidad - 1, estadisticas, heuristica))
     else:
         valor = INFINITO
         for _, hijo in generar_hijos(estado):
-            valor = min(valor, minimax(hijo, profundidad - 1, estadisticas))
+            valor = min(valor, minimax(hijo, profundidad - 1, estadisticas, heuristica))
 
     return valor
 
@@ -84,7 +84,7 @@ def minimax(estado, profundidad, estadisticas):
 # ---------------------------------------------------------------------------
 # Minimax con poda alfa-beta
 # ---------------------------------------------------------------------------
-def alfabeta(estado, profundidad, alfa, beta, estadisticas, ordenar=True):
+def alfabeta(estado, profundidad, alfa, beta, estadisticas, ordenar=True, heuristica=h):
     """
     alfa: mejor valor que MAX ya tiene garantizado en el camino actual.
     beta: mejor valor que MIN ya tiene garantizado en el camino actual.
@@ -97,7 +97,7 @@ def alfabeta(estado, profundidad, alfa, beta, estadisticas, ordenar=True):
         return utilidad(estado)
     if profundidad == 0:
         estadisticas["hojas"] += 1
-        return h(estado)
+        return heuristica(estado)
 
     es_max = estado.turno == VERDE
     hijos = generar_hijos(estado)
@@ -107,7 +107,7 @@ def alfabeta(estado, profundidad, alfa, beta, estadisticas, ordenar=True):
     if es_max:
         valor = -INFINITO
         for _, hijo in hijos:
-            valor = max(valor, alfabeta(hijo, profundidad - 1, alfa, beta, estadisticas, ordenar))
+            valor = max(valor, alfabeta(hijo, profundidad - 1, alfa, beta, estadisticas, ordenar, heuristica))
             alfa = max(alfa, valor)
             if alfa >= beta:
                 estadisticas["podas"] += 1
@@ -115,7 +115,7 @@ def alfabeta(estado, profundidad, alfa, beta, estadisticas, ordenar=True):
     else:
         valor = INFINITO
         for _, hijo in hijos:
-            valor = min(valor, alfabeta(hijo, profundidad - 1, alfa, beta, estadisticas, ordenar))
+            valor = min(valor, alfabeta(hijo, profundidad - 1, alfa, beta, estadisticas, ordenar, heuristica))
             beta = min(beta, valor)
             if alfa >= beta:
                 estadisticas["podas"] += 1
@@ -127,9 +127,12 @@ def alfabeta(estado, profundidad, alfa, beta, estadisticas, ordenar=True):
 # ---------------------------------------------------------------------------
 # Decisión de la máquina
 # ---------------------------------------------------------------------------
-def decidir(estado, profundidad, usar_poda=True, ordenar=True):
+def decidir(estado, profundidad, usar_poda=True, ordenar=True, heuristica=h):
     """
     Escoge la jugada del VERDE que maximiza el valor minimax de sus hijos.
+
+    'heuristica' es la función que valora los estados en el corte de profundidad.
+    El juego usa la heurística combinada h; los experimentos pueden pasar otra (por ejemplo f1).
 
     Devuelve un diccionario con la jugada elegida, su valor, el valor de cada
     jugada candidata y las estadísticas de la búsqueda (para el informe y la interfaz).
@@ -149,11 +152,11 @@ def decidir(estado, profundidad, usar_poda=True, ordenar=True):
 
     for jugada, hijo in hijos:
         if usar_poda:
-            valor = alfabeta(hijo, profundidad - 1, alfa, INFINITO, estadisticas, ordenar)
+            valor = alfabeta(hijo, profundidad - 1, alfa, INFINITO, estadisticas, ordenar, heuristica)
             # Con poda, si el valor no supera a alfa solo sabemos que vale "como mucho" eso.
             exacto = valor > alfa or alfa == -INFINITO
         else:
-            valor = minimax(hijo, profundidad - 1, estadisticas)
+            valor = minimax(hijo, profundidad - 1, estadisticas, heuristica)
             exacto = True
 
         candidatos.append({"jugada": jugada, "valor": valor, "exacto": exacto})
