@@ -1,15 +1,23 @@
 """
-Función de evaluación heurística (ver informe, secciones 3 y 4).
+Función de evaluación heurística (versión doble: f1 + f2).
 
 Todas las funciones se calculan desde el punto de vista del VERDE (la máquina):
 un valor positivo es bueno para la máquina y uno negativo es bueno para el humano.
 
     f1 = (casillas verdes - casillas rojas) / 64        -> el presente
-    f2 = (saltos del verde - saltos del rojo) / 8        -> el corto plazo
-    f3 = (territorio verde - territorio rojo) / 64       -> el largo plazo
+    f2 = (saltos del verde - saltos del rojo) / 8        -> el corto plazo (un salto)
 
-    h(s) = w1*f1 + w2*f2 + w3*f3                          (estados no terminales)
+    h(s) = w1*f1 + w2*f2                                  (estados no terminales)
     U(s) = 1000*signo(D) + D                              (estados terminales)
+
+Las dos componentes miran a lo sumo un salto adelante. Así la máquina solo "ve el
+futuro" a través de la profundidad del árbol, y la dificultad crece con el nivel:
+en principiante (profundidad 2) puede escoger un salto bueno ahora que la deja
+acorralada más adelante.
+
+f3 (territorio) se conserva al final del archivo solo para los experimentos que
+justifican haberla descartado: su BFS recorre todos los caminos futuros y le daba
+a la máquina una visión a largo plazo que volvía casi imposible el nivel principiante.
 """
 
 from collections import deque
@@ -19,8 +27,9 @@ from juego import (
     vecinos_caballo, movimientos, contar_casillas, es_terminal,
 )
 
-# Pesos w1, w2, w3. Deben ser no negativos, sumar 1 y w1 > 0 (informe, sección 4.1).
-PESOS = (0.4, 0.3, 0.3)
+# Pesos w1, w2: no negativos, suman 1 y w1 > 0.
+# Conservan la proporción 0.4 : 0.3 de la versión triple (0.4/0.7 ≈ 0.571 y 0.3/0.7 ≈ 0.429).
+PESOS = (0.4 / 0.7, 0.3 / 0.7)
 
 INFINITO = float("inf")
 
@@ -47,7 +56,56 @@ def f2(estado):
 
 
 # ---------------------------------------------------------------------------
-# f3: diferencia de territorio
+# Heurística combinada, utilidad terminal y evaluación
+# ---------------------------------------------------------------------------
+def h(estado, pesos=PESOS):
+    w1, w2 = pesos
+    return w1 * f1(estado) + w2 * f2(estado)
+
+
+def utilidad(estado):
+    """
+    Valor exacto de un estado terminal: más de 1000 si gana el verde,
+    menos de -1000 si gana el rojo y 0 si hay empate. Sumar D hace que la
+    máquina prefiera ganar por más casillas (o perder por menos).
+    """
+    d = diferencia_pintadas(estado)
+    if d > 0:
+        signo = 1
+    elif d < 0:
+        signo = -1
+    else:
+        signo = 0
+    return 1000 * signo + d
+
+
+def evaluar(estado, pesos=PESOS):
+    """Eval(s): utilidad si la partida terminó, heurística h si no."""
+    if es_terminal(estado):
+        return utilidad(estado)
+    return h(estado, pesos)
+
+
+def detalle(estado, pesos=PESOS):
+    """Todas las piezas de la heurística, para mostrarlas en la interfaz."""
+    terminal = es_terminal(estado)
+    return {
+        "terminal": terminal,
+        "utilidad": utilidad(estado) if terminal else None,
+        "pintadas_verde": contar_casillas(estado, VERDE),
+        "pintadas_rojo": contar_casillas(estado, ROJO),
+        "saltos_verde": len(movimientos(estado, VERDE)),
+        "saltos_rojo": len(movimientos(estado, ROJO)),
+        "f1": f1(estado),
+        "f2": f2(estado),
+        "pesos": list(pesos),
+        "h": h(estado, pesos),
+    }
+
+
+# ---------------------------------------------------------------------------
+# f3: diferencia de territorio (DESCARTADA, no se usa en h)
+# Se conserva para los experimentos de tests/test_heuristica_simple.py.
 # ---------------------------------------------------------------------------
 def distancias_bfs(estado, origen):
     """
@@ -99,53 +157,6 @@ def f3(estado):
     return (territorio_verde - territorio_rojo) / TOTAL_CASILLAS
 
 
-# ---------------------------------------------------------------------------
-# Heurística combinada, utilidad terminal y evaluación
-# ---------------------------------------------------------------------------
-def h(estado, pesos=PESOS):
-    w1, w2, w3 = pesos
-    return w1 * f1(estado) + w2 * f2(estado) + w3 * f3(estado)
-
-
-def utilidad(estado):
-    """
-    Valor exacto de un estado terminal: más de 1000 si gana el verde,
-    menos de -1000 si gana el rojo y 0 si hay empate. Sumar D hace que la
-    máquina prefiera ganar por más casillas (o perder por menos).
-    """
-    d = diferencia_pintadas(estado)
-    if d > 0:
-        signo = 1
-    elif d < 0:
-        signo = -1
-    else:
-        signo = 0
-    return 1000 * signo + d
-
-
-def evaluar(estado, pesos=PESOS):
-    """Eval(s): utilidad si la partida terminó, heurística h si no."""
-    if es_terminal(estado):
-        return utilidad(estado)
-    return h(estado, pesos)
-
-
-def detalle(estado, pesos=PESOS):
-    """Todas las piezas de la heurística, para mostrarlas en la interfaz."""
-    territorio_verde, territorio_rojo = territorio(estado)
-    terminal = es_terminal(estado)
-    return {
-        "terminal": terminal,
-        "utilidad": utilidad(estado) if terminal else None,
-        "pintadas_verde": contar_casillas(estado, VERDE),
-        "pintadas_rojo": contar_casillas(estado, ROJO),
-        "saltos_verde": len(movimientos(estado, VERDE)),
-        "saltos_rojo": len(movimientos(estado, ROJO)),
-        "territorio_verde": territorio_verde,
-        "territorio_rojo": territorio_rojo,
-        "f1": f1(estado),
-        "f2": f2(estado),
-        "f3": f3(estado),
-        "pesos": list(pesos),
-        "h": h(estado, pesos),
-    }
+def h_triple(estado):
+    """Heurística de la versión triple, h = 0.4*f1 + 0.3*f2 + 0.3*f3 (solo para comparar)."""
+    return 0.4 * f1(estado) + 0.3 * f2(estado) + 0.3 * f3(estado)

@@ -152,14 +152,13 @@ export function Razonamiento({ decision, pensando, config }) {
 
 export function Evaluacion({ heuristica }) {
   if (!heuristica) return null
-  const { f1, f2, f3, h, pesos } = heuristica
+  const { f1, f2, h, pesos } = heuristica
   // h está en [-1, 1]; la barra muestra hacia qué lado se inclina el tablero
   const porcentaje = ((h + 1) / 2) * 100
 
   const filas = [
     { nombre: 'f₁ casillas pintadas', verde: heuristica.pintadas_verde, rojo: heuristica.pintadas_rojo, valor: f1, peso: pesos[0] },
     { nombre: 'f₂ saltos disponibles', verde: heuristica.saltos_verde, rojo: heuristica.saltos_rojo, valor: f2, peso: pesos[1] },
-    { nombre: 'f₃ territorio', verde: heuristica.territorio_verde, rojo: heuristica.territorio_rojo, valor: f3, peso: pesos[2] },
   ]
 
   return (
@@ -196,7 +195,7 @@ export function Evaluacion({ heuristica }) {
               <td>{fila.verde}</td>
               <td>{fila.rojo}</td>
               <td>{formatearValor(fila.valor)}</td>
-              <td>{fila.peso}</td>
+              <td>{fila.peso.toFixed(3)}</td>
             </tr>
           ))}
         </tbody>
